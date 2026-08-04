@@ -1,0 +1,275 @@
+// IotaHub MongoDB Schema — Prisma v5 ORM
+// ─────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ═══════════════════════════════════════════════
+// Enums
+// ═══════════════════════════════════════════════
+
+enum UserRole {
+  LISTENER
+  ARTIST
+  ADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum TrackStatus {
+  LIVE
+  DRAFT
+  ARCHIVED
+}
+
+enum Genre {
+  INDIE_ROCK
+  BEDROOM_POP
+  ELECTRONIC
+  HIP_HOP
+  LO_FI
+  AMBIENT
+  R_AND_B
+  FOLK
+  OTHER
+}
+
+enum ReportReason {
+  SPAM
+  ABUSE
+  COPYRIGHT
+  INAPPROPRIATE
+  MISLEADING
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWING
+  RESOLVED
+  REJECTED
+}
+
+enum AuditAction {
+  USER_REGISTERED
+  USER_LOGIN_FAILED
+  USER_LOGIN_SUCCESS
+  TOKEN_ISSUED
+  TOKEN_REVOKED
+  BUILD_START
+  BUILD_FAIL
+  STORY_RUN_SUCCESS
+  STORY_RUN_FAIL
+  MIGRATION_RUN
+  CONFIG_CHANGED
+  RATE_LIMIT_HIT
+  WEBHOOK_FAILURE
+  USER_DELETED
+  DATA_EXPORTED
+  PERMISSION_DENIED
+}
+
+enum AuditSeverity {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+  CRITICAL
+}
+
+// ═══════════════════════════════════════════════
+// Models
+// ═══════════════════════════════════════════════
+
+model User {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  email           String    @unique
+  passwordHash    String?
+  displayName     String
+  role            UserRole  @default(LISTENER)
+  roles           UserRole[]
+  status          AccountStatus @default(ACTIVE)
+  emailVerified   Boolean   @default(false)
+  emailVerifiedAt DateTime?
+  avatarUrl       String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  // Relations
+  artistProfile   ArtistProfile?
+  playlists       Playlist[]
+  likes           Like[]
+  followedBy      Follow[]  @relation("userFollowing")
+  reportsCreated  Report[]  @relation("reportsCreated")
+  reportsResolved Report[]  @relation("reportsResolved")
+  auditLogs       AuditLog[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ArtistProfile {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String    @unique @db.ObjectId
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stageName     String
+  bio           String?
+  avatarUrl     String?
+  headerImageUrl String?
+  genreTags     Genre[]
+  socialLinks   String[]
+  followerCount Int       @default(0)
+  trackCount    Int       @default(0)
+  isVerified    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  tracks        Track[]
+  followedBy    Follow[]
+
+  @@index([stageName])
+  @@index([isVerified])
+}
+
+model Track {
+  id              String      @id @default(auto()) @map("_id") @db.ObjectId
+  title           String
+  description     String?
+  genre           Genre
+  artistProfileId String @db.ObjectId
+  artistProfile   ArtistProfile @relation(fields: [artistProfileId], references: [id])
+  duration        Float
+  audioUrl        String
+  audioStorageKey String
+  coverImageUrl   String?
+  coverImageStorageKey String?
+  playCount       Int         @default(0)
+  likeCount       Int         @default(0)
+  status          TrackStatus @default(LIVE)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  deletedAt       DateTime?
+
+  // Relations
+  playlistTracks  PlaylistTrack[]
+  likes           Like[]
+
+  @@index([artistProfileId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([genre])
+}
+
+model Playlist {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String    @db.ObjectId
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  coverMosaic String?
+  isPublic    Boolean   @default(true)
+  trackCount  Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  playlistTracks PlaylistTrack[]
+
+  @@index([userId])
+  @@index([isPublic])
+}
+
+model PlaylistTrack {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  playlistId  String @db.ObjectId
+  playlist    Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  trackId     String @db.ObjectId
+  track       Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  position    Int
+  addedAt     DateTime @default(now())
+
+  @@unique([playlistId, position])
+  @@unique([playlistId, trackId])
+  @@index([position])
+}
+
+model Like {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trackId   String @db.ObjectId
+  track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, trackId])
+  @@index([trackId])
+}
+
+model Follow {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  followerId      String  @db.ObjectId
+  follower        User     @relation("userFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  artistProfileId String @db.ObjectId
+  artistProfile   ArtistProfile @relation(fields: [artistProfileId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+
+  @@unique([followerId, artistProfileId])
+  @@index([artistProfileId])
+}
+
+model Report {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  reportedBy    String        @map("userId") @db.ObjectId
+  reportedUser  User          @relation("reportsCreated", fields: [reportedBy], references: [id])
+  targetType    String        // "TRACK", "ARTIST_PROFILE", "PLAYLIST", etc.
+  targetId      String
+  reason        ReportReason
+  description   String?
+  status        ReportStatus  @default(PENDING)
+  resolvedBy    String?       @map("adminId") @db.ObjectId
+  resolvedByUser User?        @relation("reportsResolved", fields: [resolvedBy], references: [id])
+  resolvedAt    DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([reportedBy])
+  @@index([targetType, targetId])
+  @@index([status])
+}
+
+model AuditLog {
+  id             String        @id @default(auto()) @map("_id") @db.ObjectId
+  action         AuditAction
+  actorType      String?       // "USER", "SYSTEM", "ADMIN"
+  actorUserId    String?
+  entityType     String
+  entityId       String
+  severity       AuditSeverity
+  category       String
+  errorMessage   String?
+  errorStack     String?
+  errorFingerprint String?
+  metadata       String?       // JSON
+  user           User?         @relation(fields: [userId], references: [id])
+  userId         String?       @db.ObjectId
+  createdAt      DateTime      @default(now())
+
+  @@index([action])
+  @@index([actorUserId])
+  @@index([entityType, entityId])
+  @@index([severity])
+  @@index([createdAt])
+}
