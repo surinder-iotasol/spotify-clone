@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  NODE_VERSION: "20"
+  DATABASE_URL: "mongodb://127.0.0.1:27017/test"
+  JWT_SECRET: "ci-test-secret"
+  AWS_REGION: "us-east-1"
+  AWS_ACCESS_KEY_ID: "test-key"
+  AWS_SECRET_ACCESS_KEY: "test-secret"
+  S3_BUCKET_NAME: "test-bucket"
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: TypeScript compilation check
+        run: npx tsc --noEmit
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
+
+      - name: Run Vitest unit tests
+        run: npm run test
+
+      - name: Run Playwright E2E suites
+        run: npm run test:e2e
