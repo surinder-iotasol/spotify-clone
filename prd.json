@@ -251,7 +251,7 @@
       ],
       "priority": 11.1,
       "effort": "medium",
-      "passes": false,
+      "passes": true,
       "dependsOn": [
         "STORY-setup-007"
       ],
@@ -267,7 +267,7 @@
       ],
       "priority": 11.2,
       "effort": "low",
-      "passes": false,
+      "passes": true,
       "dependsOn": [
         "STORY-security-002a"
       ],
@@ -283,7 +283,7 @@
       ],
       "priority": 11.3,
       "effort": "low",
-      "passes": false,
+      "passes": true,
       "dependsOn": [
         "STORY-security-002b"
       ],
