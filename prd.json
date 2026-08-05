@@ -232,13 +232,62 @@
         "Unit tests in tests/unit/security/session.test.ts cover token creation, claim validation, signature tampering, expiration checks, and cookie header formatting."
       ],
       "priority": 11,
+      "passes": true,
+      "dependsOn": [
+        "STORY-setup-007"
+      ],
+      "notes": "auto-split into 3 sub-stories",
+      "effort": "medium",
+      "model": "deepseek"
+    },
+    {
+      "id": "STORY-security-002a",
+      "title": "Implement JWT token generation and verification service",
+      "description": "Create a stateless JWT session token service that signs and verifies claims including userId, role, and optional artistProfileId using HMAC-SHA256. Define JwtPayload interface with iat and exp timestamps in UTC epoch.",
+      "acceptanceCriteria": [
+        "JWT token generation includes userId, role ('LISTENER'|'ARTIST'|'ADMIN'), optional artistProfileId, iat, and exp claims signed with JWT_SECRET.",
+        "Expired or tampered JWT signatures fail verification and throw a structured session invalidation error.",
+        "All timestamp claims (iat, exp) adhere to UTC Unix epoch standards."
+      ],
+      "priority": 11.1,
+      "effort": "medium",
       "passes": false,
       "dependsOn": [
         "STORY-setup-007"
       ],
-      "notes": "",
-      "effort": "medium",
-      "model": "deepseek"
+      "notes": "Already implemented in src/lib/auth/token.ts (commit 2d9da98). Inherited from parent."
+    },
+    {
+      "id": "STORY-security-002b",
+      "title": "Add cookie serialization helper with security attributes",
+      "description": "Create a serializeCookie helper that builds the Set-Cookie header string for __Host-indie_session with HttpOnly, Secure, SameSite=Strict, Path=/, and Max-Age=604800.",
+      "acceptanceCriteria": [
+        "serializeCookie returns a Set-Cookie header string with __Host-indie_session, HttpOnly, Secure, SameSite=Strict, Path=/, and Max-Age=604800.",
+        "parseAuthCookie correctly extracts the JWT value from raw Cookie header strings."
+      ],
+      "priority": 11.2,
+      "effort": "low",
+      "passes": false,
+      "dependsOn": [
+        "STORY-security-002a"
+      ],
+      "notes": "parseAuthCookie already exists in token.ts; serializeCookie helper needs to be added."
+    },
+    {
+      "id": "STORY-security-002c",
+      "title": "Create session tests in required test path",
+      "description": "Create tests/unit/security/session.test.ts covering token creation, claim validation, signature tampering, expiration checks, and cookie header formatting.",
+      "acceptanceCriteria": [
+        "Test file exists at tests/unit/security/session.test.ts with token creation, claim validation, tampering, and expiration tests.",
+        "Cookie header formatting tests verify serializeCookie output includes all security attributes."
+      ],
+      "priority": 11.3,
+      "effort": "low",
+      "passes": false,
+      "dependsOn": [
+        "STORY-security-002b"
+      ],
+      "notes": "Existing tests in src/lib/auth/token.test.ts should be migrated to the new path."
     },
     {
       "id": "STORY-security-003",
