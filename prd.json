@@ -302,14 +302,100 @@
         "Integration tests verify HTTP 401, 403, and header injection behavior for protected API routes."
       ],
       "priority": 12,
+      "passes": true,
+      "dependsOn": [
+        "STORY-setup-007",
+        "STORY-security-002"
+      ],
+      "notes": "auto-split into 5 sub-stories",
+      "effort": "medium",
+      "model": "deepseek"
+    },
+    {
+      "id": "STORY-security-003a",
+      "title": "Scaffold Next.js Edge Middleware entry point",
+      "description": "Create middleware.ts with route matcher for protected paths. Public routes skip checks. Define HTTP-401-throw helper and role escalation policies.",
+      "acceptanceCriteria": [
+        "Middleware file exists at the project root matching protected route patterns.",
+        "Public routes bypass all permission checks and reach downstream handlers.",
+        "401-throw placeholder returns a standardized Unauthorized response."
+      ],
+      "priority": 12.1,
+      "effort": "low",
       "passes": false,
       "dependsOn": [
         "STORY-setup-007",
         "STORY-security-002"
       ],
-      "notes": "",
+      "notes": ""
+    },
+    {
+      "id": "STORY-security-003b",
+      "title": "Verify session cookies and reject unauthenticated requests",
+      "description": "Parse session cookies in the middleware and return HTTP 401 when absent or expired.",
+      "acceptanceCriteria": [
+        "Requests to protected routes without a valid session cookie receive an HTTP 401 response.",
+        "Expired or malformed session cookies are treated as unauthenticated.",
+        "Public routes continue to bypass session verification entirely."
+      ],
+      "priority": 12.2,
+      "effort": "low",
+      "passes": false,
+      "dependsOn": [
+        "STORY-security-003a"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "STORY-security-003c",
+      "title": "Enforce role-based access on protected routes",
+      "description": "Validate decoded user roles against route-level constraints and return 403 for insufficient permissions.",
+      "acceptanceCriteria": [
+        "Authenticated headers (e.g. x-user-role) are extracted and checked against each route.",
+        "A user lacking required roles receives HTTP 403 Forbidden.",
+        "Admin, artist, and playlist rules follow the role hierarchy document."
+      ],
+      "priority": 12.3,
       "effort": "medium",
-      "model": "deepseek"
+      "passes": false,
+      "dependsOn": [
+        "STORY-security-003b"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "STORY-security-003d",
+      "title": "Inject identity claims into request headers",
+      "description": "Reattach decoded session claims as downstream HTTP headers for use by API handlers.",
+      "acceptanceCriteria": [
+        "Valid requests include x-user-id header populated from the session.",
+        "Valid requests include x-user-role header populated from the session.",
+        "Valid requests include x-artist-profile-id header when a profile is linked."
+      ],
+      "priority": 12.4,
+      "effort": "low",
+      "passes": false,
+      "dependsOn": [
+        "STORY-security-003c"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "STORY-security-003e",
+      "title": "Add middleware unit and integration tests",
+      "description": "Cover claim parsing, route matching, 401, 403 responses, and header injection.",
+      "acceptanceCriteria": [
+        "Unit tests validate claim parsing and route-matcher logic in isolation.",
+        "Integration tests verify HTTP-401, HTTP-403, and header injection through a real Next.js request.",
+        "Existing RBAC tests in e2e/tests/auth-rbac.spec.ts are not duplicated."
+      ],
+      "priority": 12.5,
+      "effort": "medium",
+      "passes": false,
+      "dependsOn": [
+        "STORY-security-003d"
+      ],
+      "notes": ""
     },
     {
       "id": "STORY-security-004",
